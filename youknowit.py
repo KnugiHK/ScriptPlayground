@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# If you know, you know. If you don't, you don't.
 
 from base64 import b64decode
 from hashlib import sha256
