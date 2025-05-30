@@ -1,7 +1,8 @@
 # This is a script that monitor the disk usages and shut down the computer if low disk activity is detected.
 $threshold = 5000000 # 5MB/sec threshold for "low" disk activity
+$diskTimeThreshold = 1 # 1% Disk Time threshold
 $lowActivityCounter = 0
-$consecutiveLimit = 60
+$consecutiveLimit = 10
 $logFile = "disk_monitor.log"
 
 function Log {
@@ -15,11 +16,14 @@ function Log {
 Clear-Content -Path $logFile -ErrorAction SilentlyContinue
 
 while ($true) {
-    $diskCounter = Get-Counter '\PhysicalDisk(_Total)\Disk Bytes/sec'
-    $currentValue = ($diskCounter.CounterSamples | Select-Object -ExpandProperty CookedValue)
-    Log "Current Disk Bytes/sec: $currentValue"
+    $counters = Get-Counter -Counter '\PhysicalDisk(_Total)\Disk Bytes/sec', '\PhysicalDisk(_Total)\% Disk Time'
+    $bytesPerSec = ($counters.CounterSamples | Where-Object {$_.Path -like "*Disk Bytes/sec"}).CookedValue
+    $diskTime = ($counters.CounterSamples | Where-Object {$_.Path -like "*% Disk Time"}).CookedValue
 
-    if ($currentValue -lt $threshold) {
+    Log "Current Disk Bytes/sec: $bytesPerSec"
+    Log "Current % Disk Time: $diskTime"
+
+    if ($bytesPerSec -lt $threshold -and $diskTime -le $diskTimeThreshold) {
         $lowActivityCounter++
         Log "Low disk activity detected! ($lowActivityCounter of $consecutiveLimit)"
     } else {
@@ -35,3 +39,4 @@ while ($true) {
 
     Start-Sleep -Seconds 1
 }
+
